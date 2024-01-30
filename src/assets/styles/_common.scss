@@ -1,0 +1,160 @@
+.clearfix {
+  &:after {
+    display: block;
+    height: 0;
+    font-size: 0;
+    content: ' ';
+    clear: both;
+    visibility: hidden;
+  }
+}
+
+.tl {
+  text-align: left !important;
+}
+
+.tc {
+  text-align: center !important;
+}
+
+.tr {
+  text-align: right !important;
+}
+
+.fl {
+  float: left;
+}
+
+.fr {
+  float: right;
+}
+
+.no-border {
+  border: 0 !important;
+}
+
+.no-padding {
+  padding: 0 !important;
+}
+
+.no-margin {
+  margin: 0 !important;
+}
+
+.no-wrap {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+@for $i from 1 through 2 {
+  .m-#{$i}0 {
+    margin: $i * 10 + px !important;
+  }
+
+  .m-x-#{$i}0 {
+    margin-left: $i * 10 + px !important;
+    margin-right: $i * 10 + px !important;
+  }
+
+  .m-y-#{$i}0 {
+    margin-top: $i * 10 + px !important;
+    margin-bottom: $i * 10 + px !important;
+  }
+
+  .m-t-#{$i}0 {
+    margin-top: $i * 10 + px !important;
+  }
+
+  .m-b-#{$i}0 {
+    margin-bottom: $i * 10 + px !important;
+  }
+
+  .m-r-#{$i}0 {
+    margin-right: $i * 10 + px !important;
+  }
+
+  .m-l-#{$i}0 {
+    margin-left: $i * 10 + px !important;
+  }
+
+  .p-#{$i}0 {
+    padding: $i * 10 + px !important;
+  }
+
+  .p-x-#{$i}0 {
+    padding-left: $i * 10 + px !important;
+    padding-right: $i * 10 + px !important;
+  }
+
+  .p-y-#{$i}0 {
+    padding-top: $i * 10 + px !important;
+    padding-bottom: $i * 10 + px !important;
+  }
+
+  .p-t-#{$i}0 {
+    padding-top: $i * 10 + px !important;
+  }
+
+  .p-b-#{$i}0 {
+    padding-bottom: $i * 10 + px !important;
+  }
+
+  .p-r-#{$i}0 {
+    padding-right: $i * 10 + px !important;
+  }
+
+  .p-l-#{$i}0 {
+    padding-left: $i * 10 + px !important;
+  }
+}
+
+.panel {
+  overflow: hidden;
+  background-color: #fff;
+  padding: 20px;
+  &.radius {
+    border-radius: 4px;
+  }
+  .panel-title {
+    border-bottom: 1px solid #ddd;
+    background-color: #efefef;
+    color: $gray-800;
+    font-size: 14px;
+    padding: 0px 10px;
+    line-height: 28px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+}
+
+// @Start 滚动条
+ul,
+div,
+.el-main {
+  &::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background-color: transparent;
+    border-radius: 2px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    box-shadow: inset 0 0 5px rgba($gray-800, 0.1);
+    background: $gray-200;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f8f9fb;
+    border-radius: 2px;
+  }
+
+  &:-webkit-scrollbar-thumb:hover,
+  ::-webkit-scrollbar-corner {
+    background: $gray-200;
+  }
+}
+
+// @End 滚动条
