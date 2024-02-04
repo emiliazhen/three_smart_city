@@ -3,7 +3,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, defineProps, watch, PropType } from 'vue'
 import * as THREE from 'three'
 import gsap from 'gsap'
 import texture1 from '@/assets/textures/1.jpg'
@@ -13,8 +13,8 @@ import texture4 from '@/assets/textures/4.jpg'
 import texture5 from '@/assets/textures/5.jpg'
 import texture6 from '@/assets/textures/6.jpg'
 import cityModel from '@/assets/model/city.glb'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import mapZ11 from '@/assets/image/z_11.png'
 import flyLineVertex from '@/assets/shader/flyLine/vertex.glsl'
 import flyLineFragment from '@/assets/shader/flyLine/fragment.glsl'
@@ -22,8 +22,51 @@ import lightWallVertex from '@/assets/shader/lightWall/vertex.glsl'
 import lightWallFragment from '@/assets/shader/lightWall/fragment.glsl'
 import lightRadarVertex from '@/assets/shader/lightRadar/vertex.glsl'
 import lightRadarFragment from '@/assets/shader/lightRadar/fragment.glsl'
-import warningImg from '@/assets/image/warning.png'
+import warningFireImg from '@/assets/image/warning_fire.png'
+import warningPoliceImg from '@/assets/image/warning_police.png'
+import warningElectricImg from '@/assets/image/warning_electric.png'
 
+interface EventInterface {
+  name: string
+  position: { x: number; y: number }
+  id: string
+}
+
+const props = defineProps({
+  eventList: {
+    type: Array as PropType<Array<EventInterface>>,
+    default: () => [],
+    required: true,
+  },
+  currentEventId: {
+    type: String,
+    default: '',
+  },
+})
+// 枚举
+enum WaringType {
+  fire,
+  police,
+  electric,
+}
+const WaringImgObject = {
+  [WaringType.fire]: warningFireImg,
+  [WaringType.police]: warningPoliceImg,
+  [WaringType.electric]: warningElectricImg,
+}
+// 聊天会话最后消息处理
+const valueToWaringType = (value: string) => {
+  switch (value) {
+    case '火警':
+      return WaringType.fire
+    case '治安':
+      return WaringType.police
+    case '电力':
+      return WaringType.electric
+    default:
+      return WaringType.fire
+  }
+}
 // 更改材质
 const modifyCityMaterial = (mesh: any) => {
   mesh.material.onBeforeCompile = (shader: any) => {
@@ -73,7 +116,7 @@ const addGradationColor = (shader: any, mesh: any) => {
     '#include <common>',
     `
       #include <common>
-      
+
       uniform vec3 uTopColor;
       uniform float uDiffHeight;
       varying vec3 vPosition;
@@ -82,7 +125,7 @@ const addGradationColor = (shader: any, mesh: any) => {
   shader.fragmentShader = shader.fragmentShader.replace(
     '//#end#',
     `
-      
+
       vec4 distGradColor = gl_FragColor;
 
       // 设置混合的百分比
@@ -161,10 +204,10 @@ const addLightLine = (shader: any) => {
     '//#end#',
     `
       float LightLineMix = -(vPosition.x+vPosition.z-uLightLineTime)*(vPosition.x+vPosition.z-uLightLineTime)+uLightLineWidth;
-  
+
       if(LightLineMix>0.0){
           gl_FragColor = mix(gl_FragColor,vec4(0.8,1.0,1.0,1),LightLineMix /uLightLineWidth);
-          
+
       }
       //#end#
       `
@@ -188,8 +231,8 @@ const addToTopLine = (shader: any) => {
     '#include <common>',
     `
           #include <common>
-    
-          
+
+
           uniform float uToTopTime;
           uniform float uToTopWidth;
           `
@@ -199,12 +242,12 @@ const addToTopLine = (shader: any) => {
     '//#end#',
     `
         float ToTopMix = -(vPosition.y-uToTopTime)*(vPosition.y-uToTopTime)+uToTopWidth;
-    
+
         if(ToTopMix>0.0){
             gl_FragColor = mix(gl_FragColor,vec4(0.8,0.8,1,1),ToTopMix /uToTopWidth);
-            
+
         }
-    
+
         //#end#
         `
   )
@@ -244,6 +287,8 @@ renderer.shadowMap.enabled = true
 const controls = new OrbitControls(camera, renderer.domElement)
 // 设置控制器阻尼
 controls.enableDamping = true
+controls.maxPolarAngle = Math.PI / 2
+controls.minPolarAngle = 0
 
 // 加入辅助轴，帮助我们查看3维坐标轴
 // const axesHelper = new THREE.AxesHelper(5)
@@ -291,23 +336,6 @@ gltfLoader.load(cityModel, (gltf: any) => {
   })
   scene.add(gltf.scene)
 })
-// 添加效果
-const initCityEffects = () => {
-  const flyLine = new FlyLine()
-  scene.add(flyLine.mesh)
-
-  const flyLineShader = new FlyLineShader()
-  scene.add(flyLineShader.mesh)
-
-  const lightWall = new LightWall()
-  scene.add(lightWall.mesh)
-
-  const lightRadar = new LightRadar()
-  scene.add(lightRadar.mesh)
-
-  const warningSprite = new WarningSprite(-2.8, 3.5, -6.5, camera)
-  scene.add(warningSprite.mesh)
-}
 
 // 监听屏幕大小改变的变化，设置渲染的尺寸
 window.addEventListener('resize', () => {
@@ -323,7 +351,8 @@ window.addEventListener('resize', () => {
 })
 onMounted(() => {
   threeRef.value!.appendChild(renderer.domElement)
-  initCityEffects()
+  const flyLine = new FlyLine()
+  scene.add(flyLine.mesh)
   animationFunction()
 })
 // 飞线
@@ -354,14 +383,22 @@ class FlyLine {
       ease: 'none',
     })
   }
+  remove() {
+    this.mesh.remove()
+    this.mesh.removeFromParent()
+    this.mesh.geometry.dispose()
+    ;(this.mesh.material as any).dispose()
+  }
 }
 
 // 飞线-着色器方法实现
 class FlyLineShader {
+  id: string
   mesh: THREE.Points
   shaderMaterial: THREE.ShaderMaterial
-  constructor() {
-    const linePoints = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 5, 5), new THREE.Vector3(0, 0, 14)]
+  constructor(xzPosition: { x: number; z: number }, id: string) {
+    this.id = `flyLineShader${id}`
+    const linePoints = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(xzPosition.x / 2, 4, xzPosition.z / 2), new THREE.Vector3(xzPosition.x, 0, xzPosition.z)]
     const lineCurve = new THREE.CatmullRomCurve3(linePoints)
     const points = lineCurve.getPoints(1000)
     const geometry = new THREE.BufferGeometry().setFromPoints(points)
@@ -390,14 +427,22 @@ class FlyLineShader {
       ease: 'none',
     })
   }
+  remove() {
+    this.mesh.remove()
+    this.mesh.removeFromParent()
+    this.mesh.geometry.dispose()
+    ;(this.mesh.material as any).dispose()
+  }
 }
 
 // 光墙
 class LightWall {
+  id: string
   mesh: THREE.Mesh
   material: THREE.ShaderMaterial
-  constructor() {
-    const geometry = new THREE.CylinderGeometry(5, 5, 2, 32, 1, true)
+  constructor(xzPosition: { x: number; z: number }, id: string) {
+    this.id = `lightWall${id}`
+    const geometry = new THREE.CylinderGeometry(2, 2, 2, 32, 1, true)
     this.material = new THREE.ShaderMaterial({
       uniforms: {
         uDiffHeight: {
@@ -410,29 +455,37 @@ class LightWall {
       side: THREE.DoubleSide,
     })
     this.mesh = new THREE.Mesh(geometry, this.material)
-    this.mesh.position.set(0, 1.5, 0)
+    this.mesh.position.set(xzPosition.x, 1.5, xzPosition.z)
     // 需先计算当前几何体的的边界矩形
     this.mesh.geometry.computeBoundingBox()
-    const { min, max } = this.mesh.geometry.boundingBox
+    const { min, max } = this.mesh.geometry.boundingBox!
     // 获取物体的高度差
     this.material.uniforms.uDiffHeight = {
       value: max.y - min.y,
     }
     gsap.to(this.mesh.scale, {
-      x: 2,
-      z: 2,
+      x: 1.2,
+      z: 1.2,
       duration: 1,
       repeat: -1,
       yoyo: true,
     })
   }
+  remove() {
+    this.mesh.remove()
+    this.mesh.removeFromParent()
+    this.mesh.geometry.dispose()
+    ;(this.mesh.material as any).dispose()
+  }
 }
 
 // 雷达
 class LightRadar {
+  id: string
   mesh: THREE.Mesh
   material: THREE.ShaderMaterial
-  constructor() {
+  constructor(position: { x: number; z: number }, id: string) {
+    this.id = `lightRadar${id}`
     const geometry = new THREE.PlaneGeometry(2, 2)
     this.material = new THREE.ShaderMaterial({
       uniforms: {
@@ -446,7 +499,7 @@ class LightRadar {
       side: THREE.DoubleSide,
     })
     this.mesh = new THREE.Mesh(geometry, this.material)
-    this.mesh.position.set(-9, 0.4, 8.3)
+    this.mesh.position.set(position.x, 0.4, position.z)
     this.mesh.rotation.x = Math.PI / 2
     gsap.to(this.material.uniforms.uTime, {
       value: 1,
@@ -455,35 +508,121 @@ class LightRadar {
       ease: 'none',
     })
   }
+  remove() {
+    this.mesh.remove()
+    this.mesh.removeFromParent()
+    this.mesh.geometry.dispose()
+    ;(this.mesh.material as any).dispose()
+  }
 }
 
+// 警告标识
 class WarningSprite {
+  id: string
   mesh: THREE.Sprite
   raycaster: THREE.Raycaster
-  constructor(x: number, y: number, z: number, camera: THREE.PerspectiveCamera) {
+  constructor(type: WaringType, position: { x: number; z: number }, id: string) {
+    this.id = `warningSprite${id}`
     const textureLoader = new THREE.TextureLoader()
-    const map = textureLoader.load(warningImg)
+    const map = textureLoader.load(WaringImgObject[type])
     const material = new THREE.SpriteMaterial({
       map,
       transparent: true,
       depthTest: false,
     })
     this.mesh = new THREE.Sprite(material)
-    this.mesh.position.set(x, y, z)
+    this.mesh.position.set(position.x, 3.5, position.z)
     // 创建射线
     this.raycaster = new THREE.Raycaster()
 
     // 监听点击事件
     window.addEventListener('click', (e) => {
       ;(e as any).mesh = this.mesh
+      ;(e as any).eventId = this.id
       this.raycaster.setFromCamera(new THREE.Vector2((e.clientX / window.innerWidth) * 2 - 1, -((e.clientY / window.innerHeight) * 2 - 1)), camera)
       const intersects = this.raycaster.intersectObject(this.mesh)
       if (intersects.length > 0) {
-        console.log(e)
+        const index = props.eventList.findIndex((v) => {
+          const reg = new RegExp(`${v.id}$`)
+          return reg.test((e as any).eventId)
+        })
+        console.log(index)
+        if (index !== -1) {
+          const { x, y: z } = props.eventList[index].position
+          gsap.to(controls.target, {
+            x: x / 5 - 10,
+            z: z / 5 - 10,
+            duration: 1,
+          })
+        }
       }
     })
   }
+  remove() {
+    this.mesh.remove()
+    this.mesh.removeFromParent()
+    this.mesh.geometry.dispose()
+    ;(this.mesh.material as any).dispose()
+  }
 }
+const eventEntries: Array<WarningSprite | LightRadar | LightWall | FlyLineShader> = []
+watch(
+  () => props.eventList,
+  (nV: Array<EventInterface>) => {
+    eventEntries.forEach((item) => item.remove())
+    nV.forEach(({ name, position, id }) => {
+      const type = valueToWaringType(name)
+      const xzPosition = {
+        x: position.x / 5 - 10,
+        z: position.y / 5 - 10,
+      }
+      if (type === WaringType.fire) {
+        const lightWall = new LightWall(xzPosition, id)
+        eventEntries.push(lightWall)
+        scene.add(lightWall.mesh)
+      } else if (type === WaringType.police) {
+        const flyLineShader = new FlyLineShader(xzPosition, id)
+        eventEntries.push(flyLineShader)
+        scene.add(flyLineShader.mesh)
+      } else if (type === WaringType.electric) {
+        const lightRadar = new LightRadar(xzPosition, id)
+        eventEntries.push(lightRadar)
+        scene.add(lightRadar.mesh)
+      }
+      const warningSprite = new WarningSprite(type, xzPosition, id)
+      eventEntries.push(warningSprite)
+      scene.add(warningSprite.mesh)
+    })
+  },
+  {
+    deep: true,
+    immediate: true,
+  }
+)
+watch(
+  () => props.currentEventId,
+  (nV: string) => {
+    if (nV) {
+      const reg = new RegExp(`${nV}$`)
+      eventEntries.forEach((v) => {
+        if (reg.test(v.id)) {
+          v.mesh.visible = true
+        } else {
+          v.mesh.visible = false
+        }
+      })
+      const index = props.eventList.findIndex((v) => v.id === nV)
+      if (index !== -1) {
+        const { x, y: z } = props.eventList[index].position
+        gsap.to(controls.target, {
+          x: x / 5 - 10,
+          z: z / 5 - 10,
+          duration: 1,
+        })
+      }
+    }
+  }
+)
 </script>
 
 <style scoped>

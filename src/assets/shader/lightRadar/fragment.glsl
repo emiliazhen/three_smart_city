@@ -13,5 +13,5 @@ void main(){
   // 圆心角
   float angle = atan(newUv.x-0.5, newUv.y-0.5);
   float strength = (angle + 3.14)/ 6.28;
-  gl_FragColor = vec4(1,0,0,alpha * strength);
+  gl_FragColor = vec4(1,0.6,0,alpha * strength);
 }

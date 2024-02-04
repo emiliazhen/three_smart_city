@@ -20,13 +20,12 @@
             <span>事件列表</span>
           </h3>
           <ul>
-            <li v-for="(item, i) in eventList" :class="{ active: currentActive == i }" @click="toggleEvent(i)" :key="i">
+            <li v-for="item in eventList" :class="{ active: currentActiveId == item.id }" @click="toggleEvent(item.id)" :key="item.id">
               <h1>
                 <div>
                   <img class="icon" :src="liImgSrcObject[item.name]" />
                   <span>{{ item.name }}</span>
                 </div>
-                <span class="time">{{ item.time }}</span>
               </h1>
               <p>{{ item.type }}</p>
             </li>
@@ -35,7 +34,7 @@
       </div>
     </div>
   </div>
-  <scene />
+  <scene :event-list="eventList" :currentEventId="currentActiveId" />
 </template>
 
 <script lang="ts" setup>
@@ -47,6 +46,13 @@ import electricSvg from '@/assets/image/electric.svg'
 import fireSvg from '@/assets/image/fire.svg'
 import policeSvg from '@/assets/image/police.svg'
 import Scene from '@/components/Scene.vue'
+
+interface EventInterface {
+  name: string
+  position: { x: number; y: number }
+  id: string
+  type: string
+}
 
 const liImgSrcObject = {
   电力: electricSvg,
@@ -60,34 +66,47 @@ const dataInfo = reactive({
   power: { number: 0 },
   test: { number: 0 },
 } as { [key: string]: { name?: string; number: number; unit?: string } })
-const eventList = ref([])
-const currentActive = ref(0)
+const eventList = ref([] as Array<EventInterface>)
+const currentActiveId = ref('')
 // 获取列表
 const getEventList = async () => {
   const res = await GET_SMARTCITY_LIST()
-  eventList.value = res.data.list
+  eventList.value = res.data.list.map((v: EventInterface) => {
+    v.id = Math.random().toString(16).slice(2)
+    return v
+  })
+  currentActiveId.value = ''
 }
 
 // 获取信息
-const getSmartInfo = async () => {
+const getSmartInfo = async (needAnimate = true) => {
   const res = await GET_SMARTCITY_INFO()
   for (const key in res.data.data) {
-    dataInfo[key].name = res.data.data[key].name
-    dataInfo[key].unit = res.data.data[key].unit
-    gsap.to(dataInfo[key], {
-      number: res.data.data[key].number,
-      duration: 1,
-    })
+    const { name, unit, number } = res.data.data[key]
+    dataInfo[key].name = name
+    dataInfo[key].unit = unit
+    if (needAnimate) {
+      gsap.to(dataInfo[key], {
+        number: number,
+        duration: 1,
+      })
+    } else {
+      dataInfo[key].number = number
+    }
   }
 }
 
+// 选中
+const toggleEvent = (id: string) => {
+  currentActiveId.value = id
+}
 onMounted(() => {
   getEventList()
-  getSmartInfo()
+  getSmartInfo(false)
   setInterval(() => {
     getEventList()
     getSmartInfo()
-  }, 2000)
+  }, 3000)
 })
 </script>
 
@@ -220,11 +239,6 @@ h1 > div {
   display: flex;
   align-items: center;
 }
-h1 span.time {
-  font-size: 0.2rem;
-  font-weight: normal;
-}
-
 .cityEvent li > p {
   color: #eee;
   font-size: 0.2rem;
