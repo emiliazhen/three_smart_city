@@ -39,20 +39,13 @@
 
 <script lang="ts" setup>
 import { reactive, ref, onMounted } from 'vue'
-import { GET_SMARTCITY_INFO, GET_SMARTCITY_LIST } from '@/apis'
+import { createSmartCityInfo, createSmartCityList, type SmartCityEvent } from '@/mock/smartcity'
 import gsap from 'gsap'
 import barSvg from '@/assets/image/bar.svg'
 import electricSvg from '@/assets/image/electric.svg'
 import fireSvg from '@/assets/image/fire.svg'
 import policeSvg from '@/assets/image/police.svg'
 import Scene from '@/components/Scene.vue'
-
-interface EventInterface {
-  name: string
-  position: { x: number; y: number }
-  id: string
-  type: string
-}
 
 const liImgSrcObject = {
   电力: electricSvg,
@@ -66,23 +59,17 @@ const dataInfo = reactive({
   power: { number: 0 },
   test: { number: 0 },
 } as { [key: string]: { name?: string; number: number; unit?: string } })
-const eventList = ref([] as Array<EventInterface>)
+const eventList = ref([] as Array<SmartCityEvent>)
 const currentActiveId = ref('')
-// 获取列表
-const getEventList = async () => {
-  const res = await GET_SMARTCITY_LIST()
-  eventList.value = res.data.list.map((v: EventInterface) => {
-    v.id = Math.random().toString(16).slice(2)
-    return v
-  })
+const getEventList = () => {
+  eventList.value = createSmartCityList()
   currentActiveId.value = ''
 }
 
-// 获取信息
-const getSmartInfo = async (needAnimate = true) => {
-  const res = await GET_SMARTCITY_INFO()
-  for (const key in res.data.data) {
-    const { name, unit, number } = res.data.data[key]
+const getSmartInfo = (needAnimate = true) => {
+  const info = createSmartCityInfo()
+  ;(Object.keys(info) as Array<keyof typeof info>).forEach((key) => {
+    const { name, unit, number } = info[key]
     dataInfo[key].name = name
     dataInfo[key].unit = unit
     if (needAnimate) {
@@ -93,7 +80,7 @@ const getSmartInfo = async (needAnimate = true) => {
     } else {
       dataInfo[key].number = number
     }
-  }
+  })
 }
 
 // 选中
